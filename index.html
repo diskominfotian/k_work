@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Utama & Manajemen Kerja</title>
+
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%2032%2032%27%3E%3Cdefs%3E%3ClinearGradient%20id=%27g%27%20x1=%270%27%20y1=%270%27%20x2=%271%27%20y2=%271%27%3E%3Cstop%20offset=%270%27%20stop-color=%27%231A8CFF%27/%3E%3Cstop%20offset=%271%27%20stop-color=%27%230A6CE0%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width=%2732%27%20height=%2732%27%20rx=%279%27%20fill=%27url(%23g)%27/%3E%3Cg%20transform=%27translate(-1.2%200)%27%3E%3Cpath%20d=%27M10.4%206.4v19.2%27%20stroke=%27%23fff%27%20stroke-width=%274.6%27%20stroke-linecap=%27round%27/%3E%3Cpath%20d=%27M17.4%2016%2024%208.6%27%20stroke=%27%23fff%27%20stroke-width=%274.6%27%20stroke-linecap=%27round%27/%3E%3Cpath%20d=%27M17.4%2016%2024.4%2025%27%20stroke=%27%23fff%27%20stroke-width=%274.6%27%20stroke-linecap=%27round%27%20opacity=%27.88%27/%3E%3C/g%3E%3C/svg%3E">
+
+    <!-- Supabase JS Client CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Font: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS CDN & Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        ios: {
+                            bgLight: '#F2F2F7',
+                            bgDark: '#000000',
+                            cardLight: 'rgba(255, 255, 255, 0.8)',
+                            cardDark: 'rgba(28, 28, 30, 0.8)',
+                            blue: '#007AFF',
+                            green: '#34C759',
+                            orange: '#FF9500',
+                            red: '#FF3B30',
+                            purple: '#AF52DE',
+                            gray: '#8E8E93',
+                            gray6: '#F2F2F7',
+                            darkGray5: '#1C1C1E',
+                            darkGray4: '#2C2C2E'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', '"Helvetica Neue"', 'Helvetica', 'Arial', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Warna aksen mengikuti menu yang sedang dibuka (diatur dari app.js) */
+        :root { --accent: 0, 122, 255; }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background: radial-gradient(70rem 30rem at 92% -12%, rgba(var(--accent), 0.13), transparent 62%);
+        }
+        .dark body::before {
+            background: radial-gradient(70rem 30rem at 92% -12%, rgba(var(--accent), 0.2), transparent 62%);
+        }
+
+        .accent-dot {
+            width: 0.4rem; height: 0.4rem; border-radius: 9999px;
+            background: rgb(var(--accent));
+        }
+        .accent-bg { background: rgb(var(--accent)); }
+
+        /* Logo K_Work: warna mengikuti menu yang sedang dibuka */
+        .brand-tile {
+            display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+            border-radius: 28%;
+            background: linear-gradient(145deg, rgb(var(--accent)), rgba(var(--accent), 0.72));
+            box-shadow: 0 8px 18px -6px rgba(var(--accent), 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.4), inset 0 -2px 4px rgba(0, 0, 0, 0.08);
+            transition: background 0.3s;
+        }
+
+        * { scrollbar-width: thin; scrollbar-color: rgba(142, 142, 147, 0.4) transparent; }
+
+        :focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+        input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+
+        /* Satu gerakan saat pindah menu */
+        .view-enter { animation: viewIn 0.22s ease-out; }
+        @keyframes viewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+
+        .ios-glass {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .ios-shadow {
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.06);
+        }
+
+        .dark .ios-shadow {
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .ios-checkbox:checked+div {
+            background-color: #34C759;
+            border-color: #34C759;
+        }
+
+        .ios-checkbox:checked+div svg {
+            display: block;
+        }
+    </style>
+</head>
+
+<body
+    class="h-full bg-ios-bgLight dark:bg-ios-bgDark text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300 antialiased selection:bg-ios-blue selection:text-white">
+
+    <!-- Layar Login: tampil lebih dulu, dashboard baru terbuka setelah masuk -->
+    <div id="loginScreen" class="fixed inset-0 z-[100] overflow-y-auto">
+        <div class="min-h-full flex items-center justify-center p-4 sm:p-6">
+            <div class="w-full max-w-sm">
+                <div class="flex items-center justify-center gap-3 mb-6">
+                    <span class="brand-tile w-12 h-12" aria-hidden="true"><svg viewBox="0 0 32 32" class="w-[60%] h-[60%]" fill="none"><g transform="translate(-1.2 0)"><path d="M10.4 6.4v19.2" stroke="#fff" stroke-width="4.6" stroke-linecap="round"/><path d="M17.4 16 24 8.6" stroke="#fff" stroke-width="4.6" stroke-linecap="round"/><path d="M17.4 16 24.4 25" stroke="#fff" stroke-width="4.6" stroke-linecap="round" opacity=".88"/></g></svg></span>
+                    <div>
+                        <h1 class="text-xl font-extrabold tracking-tight">K_Work</h1>
+                        <p class="text-xs text-ios-gray">Dashboard Utama</p>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl bg-white/80 dark:bg-ios-darkGray5/80 ios-glass ios-shadow border border-gray-200/60 dark:border-gray-800/80 p-6 sm:p-7">
+                    <div id="loginChecking" class="py-10 text-center text-sm text-ios-gray">Memeriksa sesi...</div>
+
+                    <div id="loginFormWrap" class="hidden">
+                        <h2 class="text-lg font-extrabold tracking-tight">Masuk</h2>
+                        <p class="text-xs text-ios-gray mt-1 mb-5">Gunakan akun yang sudah terdaftar untuk membuka dashboard.</p>
+
+                        <form id="loginForm" onsubmit="handleLogin(event)" novalidate class="space-y-4">
+                            <div>
+                                <label for="loginEmail" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Email</label>
+                                <input id="loginEmail" type="email" autocomplete="username" inputmode="email" placeholder="nama@email.com"
+                                    class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                            </div>
+                            <div>
+                                <label for="loginPassword" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Kata sandi</label>
+                                <div class="relative">
+                                    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi"
+                                        class="w-full pl-4 pr-24 py-3 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                                    <button type="button" id="loginTogglePw" onclick="togglePassword()"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ios-blue hover:bg-ios-blue/10">Tampilkan</button>
+                                </div>
+                            </div>
+
+                            <p id="loginError" role="alert" class="hidden text-xs font-medium text-ios-red bg-ios-red/10 rounded-xl px-3 py-2.5"></p>
+
+                            <button id="loginSubmit" type="submit"
+                                class="w-full py-3 rounded-xl bg-ios-blue hover:bg-blue-600 text-white text-sm font-semibold shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed">Masuk</button>
+                        </form>
+                    </div>
+                </div>
+
+                <p class="text-center text-[11px] text-ios-gray mt-5">Akses dibatasi. Hubungi admin jika belum punya akun.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layout Utama: Flex Container (Sidebar di Kiri, Konten di Kanan). Tersembunyi sampai pengguna masuk -->
+    <div id="appShell" class="hidden min-h-screen flex flex-col md:flex-row">
+
+        <!-- Sidebar Samping Kiri (Sesuai area tanda merah Anda) -->
+        <div id="sidebarOverlay" class="hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+            onclick="toggleSidebar(false)"></div>
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] -translate-x-full transition-transform duration-300 ease-out md:translate-x-0 md:sticky md:top-0 md:z-20 md:h-screen md:w-[17rem] md:max-w-none md:self-start md:shrink-0 md:p-3">
+          <div
+            class="h-full flex flex-col overflow-hidden p-5 rounded-r-3xl md:rounded-3xl bg-white/95 dark:bg-ios-darkGray5/95 md:bg-white/85 md:dark:bg-ios-darkGray5/85 ios-glass ios-shadow border border-gray-200/60 dark:border-gray-800/80">
+            <div class="min-h-0 flex-1 overflow-y-auto pb-3 -mr-2 pr-2">
+                <!-- Brand / Logo Aplikasi -->
+                <div class="flex items-center gap-3 mb-8 px-2">
+                    <span class="brand-tile w-10 h-10" aria-hidden="true"><svg viewBox="0 0 32 32" class="w-[60%] h-[60%]" fill="none"><g transform="translate(-1.2 0)"><path d="M10.4 6.4v19.2" stroke="#fff" stroke-width="4.6" stroke-linecap="round"/><path d="M17.4 16 24 8.6" stroke="#fff" stroke-width="4.6" stroke-linecap="round"/><path d="M17.4 16 24.4 25" stroke="#fff" stroke-width="4.6" stroke-linecap="round" opacity=".88"/></g></svg></span>
+                    <div>
+                        <h2 class="text-base font-extrabold tracking-tight">K_Work</h2>
+                        <p class="text-xs text-ios-gray">Dashboard Utama</p>
+                    </div>
+                </div>
+
+                <!-- Menu Navigasi Samping -->
+                <nav id="sidebarNav" class="space-y-1.5 text-sm font-medium"></nav>
+            </div>
+
+
+
+            <!-- Footer Sidebar Info -->
+            <div class="shrink-0 pt-4 border-t border-gray-200/50 dark:border-gray-800/50 px-2">
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div id="userAvatar" class="accent-bg w-8 h-8 shrink-0 rounded-full text-white flex items-center justify-center text-xs font-bold">U</div>
+                    <div class="min-w-0 flex-1">
+                        <p id="userEmail" class="text-xs font-semibold truncate" title="">-</p>
+                        <p class="text-[11px] text-ios-gray">Sedang masuk</p>
+                    </div>
+                    <button id="manageUsersBtn" onclick="openUserModal()" title="Kelola akun" aria-label="Kelola akun"
+                        class="hidden shrink-0 p-2 rounded-xl text-ios-gray hover:text-ios-blue hover:bg-ios-blue/10 transition-all">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="handleLogout()" title="Keluar" aria-label="Keluar"
+                        class="shrink-0 p-2 rounded-xl text-ios-gray hover:text-ios-red hover:bg-ios-red/10 transition-all">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between text-xs text-ios-gray">
+                    <span>Penyimpanan</span>
+                    <span id="syncStatus" class="flex items-center gap-1.5 font-medium text-ios-gray">
+                        <span id="syncDot" class="w-2 h-2 rounded-full bg-ios-gray"></span>
+                        <span id="syncLabel">Memeriksa...</span>
+                    </span>
+                </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Area Konten Utama (Kanan) -->
+        <div class="flex-1 min-w-0 flex flex-col px-4 sm:px-6 lg:px-8 pb-12">
+
+            <!-- Top Header Navigation -->
+            <header
+                class="sticky top-0 z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 py-4 mb-6 ios-glass bg-ios-bgLight/70 dark:bg-ios-darkGray5/70 border-b border-gray-200/50 dark:border-gray-800/50">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <button onclick="toggleSidebar()" aria-label="Buka menu"
+                            class="md:hidden shrink-0 p-2.5 rounded-full bg-white/80 dark:bg-ios-darkGray4/80 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 shadow-sm active:scale-95 transition-all">
+                            <i data-lucide="menu" class="w-5 h-5"></i>
+                        </button>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="accent-dot"></span>
+                                <p id="headerCategory" class="text-xs font-medium text-ios-gray truncate">Dashboard kerja kantor</p>
+                            </div>
+                            <h1 id="headerTitle" class="mt-0.5 text-xl leading-tight sm:text-4xl font-extrabold tracking-tight sm:truncate">Daftar Tugas & Prioritas</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleModal('prdModal')"
+                            class="hidden sm:block p-2.5 rounded-full bg-white/80 dark:bg-ios-darkGray4/80 border border-gray-200 dark:border-gray-700/50 text-ios-blue hover:scale-105 active:scale-95 transition-all shadow-sm"
+                            title="Lihat PRD">
+                            <i data-lucide="file-text" class="w-5 h-5"></i>
+                        </button>
+                        <button id="themeToggle"
+                            class="p-2.5 rounded-full bg-white/80 dark:bg-ios-darkGray4/80 border border-gray-200 dark:border-gray-700/50 text-amber-500 dark:text-amber-300 hover:scale-105 active:scale-95 transition-all shadow-sm">
+                            <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                            <i data-lucide="moon" class="w-5 h-5 block dark:hidden text-ios-gray"></i>
+                        </button>
+                        <!-- Urutan: terbaru / A-Z / Z-A -->
+                        <button id="sortBtn" type="button" onclick="cycleSort()"
+                            class="hidden items-center gap-1.5 px-3 py-2.5 rounded-full bg-white/80 dark:bg-ios-darkGray4/80 border border-gray-200 dark:border-gray-700/50 text-gray-700 dark:text-gray-200 hover:scale-105 active:scale-95 transition-all shadow-sm"></button>
+                        <!-- Pilihan tampilan: kolom / baris -->
+                        <div id="layoutToggle"
+                            class="hidden flex items-center gap-0.5 p-1 rounded-full bg-gray-200/70 dark:bg-ios-darkGray4/70 border border-gray-200/60 dark:border-gray-700/50">
+                            <button id="layoutBtnGrid" onclick="setLayout('grid')" title="Tampilan kolom"
+                                class="p-2 rounded-full transition-all text-ios-gray">
+                                <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                            </button>
+                            <button id="layoutBtnList" onclick="setLayout('list')" title="Tampilan baris"
+                                class="p-2 rounded-full transition-all text-ios-gray">
+                                <i data-lucide="list" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <!-- Tombol Aksi Dinamis -->
+                        <div id="headerActionBtn">
+                            <button onclick="openTaskModal()"
+                                class="flex items-center gap-1.5 px-4 py-2.5 bg-ios-blue hover:bg-blue-600 text-white rounded-full font-medium text-sm shadow-md transition-all">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span class="hidden sm:inline">Tambah Tugas</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kotak Pencarian & Filter (Hanya tampil di menu tugas) -->
+                <div id="taskControls" class="mt-4 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                    <div class="relative w-full sm:w-72">
+                        <i data-lucide="search"
+                            class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ios-gray"></i>
+                        <input type="text" id="searchInput" placeholder="Cari kerjaan atau kategori..."
+                            class="w-full pl-9 pr-4 py-2 rounded-xl text-sm bg-gray-200/60 dark:bg-ios-darkGray4/60 border-none focus:ring-2 focus:ring-ios-blue outline-none transition-all placeholder-ios-gray">
+                    </div>
+
+                    <div class="w-full sm:w-auto overflow-x-auto no-scrollbar">
+                        <div id="filterContainer"
+                            class="flex p-1 bg-gray-200/70 dark:bg-ios-darkGray4/70 rounded-xl text-xs font-medium text-ios-gray min-w-max">
+                            <button onclick="setFilter('semua')" id="btn-semua"
+                                class="filter-btn px-3.5 py-1.5 rounded-lg transition-all text-gray-900 dark:text-white bg-white dark:bg-gray-700 shadow-sm">Semua</button>
+                            <button onclick="setFilter('deadline')" id="btn-deadline"
+                                class="filter-btn px-3.5 py-1.5 rounded-lg transition-all hover:text-gray-900 dark:hover:text-white">Mendekati
+                                Deadline</button>
+                            <button onclick="setFilter('tinggi')" id="btn-tinggi"
+                                class="filter-btn px-3.5 py-1.5 rounded-lg transition-all hover:text-gray-900 dark:hover:text-white">Prioritas
+                                Tinggi</button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 1. Halaman Manajemen Tugas -->
+            <main class="flex-1">
+                <!-- Radar Deadline 7 hari (dirender dari app.js) -->
+                <div id="deadlineRadar" class="mb-6"></div>
+
+                <div id="taskList" class="space-y-3.5">
+                    <!-- Task items render here dynamically -->
+                </div>
+
+                <div id="emptyState" class="hidden text-center py-16">
+                    <div id="emptyStateIcon"
+                        class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200/50 dark:bg-gray-800/50 flex items-center justify-center text-ios-gray">
+                        <i data-lucide="clipboard-check" class="w-8 h-8"></i>
+                    </div>
+                    <h3 id="emptyStateTitle" class="text-lg font-semibold text-gray-700 dark:text-gray-300">Tidak ada
+                        pekerjaan ditemukan</h3>
+                    <p id="emptyStateDesc" class="text-sm text-ios-gray mt-1">Coba sesuaikan filter atau tambahkan
+                        pekerjaan baru.</p>
+                    <div id="emptyStateAction" class="mt-4"></div>
+                </div>
+            </main>
+
+            <!-- 2. Halaman Tautan (Portal, PSKI, Renlap) - isi dirender dari app.js -->
+            <div id="linkSection" class="hidden space-y-4 flex-1">
+                <div id="linkList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Kartu tautan dirender di sini -->
+                </div>
+            </div>
+
+            <!-- 3. Halaman Tersemat (Rekap Insiden, Drive PSKI, Drive Renlap) - panel dibuat dari app.js -->
+            <div id="iframeSection" class="hidden flex-1"></div>
+
+        </div>
+
+        <!-- Task Form Modal -->
+        <div id="taskModal"
+            class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/40 backdrop-blur-md transition-opacity">
+            <div
+                class="w-full max-w-lg bg-white dark:bg-ios-darkGray5 rounded-3xl p-6 ios-shadow border border-gray-200/60 dark:border-gray-700/60 transform transition-all scale-100">
+                <div class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 id="modalTitle" class="text-xl font-bold">Tambah Kerjaan Baru</h3>
+                    <button onclick="toggleModal('taskModal')"
+                        class="p-1 rounded-full text-ios-gray hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="taskForm" onsubmit="saveTask(event)" class="mt-4 space-y-4">
+                    <input type="hidden" id="taskId">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Judul Pekerjaan
+                            *</label>
+                        <input type="text" id="taskTitle" required
+                            placeholder="Contoh: Pengisian Proses Bisnis Modul Keuangan"
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Kategori / Tag
+                                *</label>
+                            <input type="text" id="taskCategory" required placeholder="e.g. Proses Bisnis, ISO, Laporan"
+                                class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Tingkat Prioritas
+                                *</label>
+                            <select id="taskPriority" required
+                                class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                                <option value="Tinggi">🔴 Tinggi</option>
+                                <option value="Sedang" selected>🟠 Sedang</option>
+                                <option value="Rendah">🟢 Rendah</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Link Kertas Kerja
+                            (URL)</label>
+                        <div class="relative">
+                            <i data-lucide="file-spreadsheet"
+                                class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ios-gray"></i>
+                            <input type="url" id="taskWorksheetUrl"
+                                placeholder="https://docs.google.com/spreadsheets/d/..."
+                                class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Link File Eviden
+                            (URL)</label>
+                        <div class="relative">
+                            <i data-lucide="folder-check"
+                                class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ios-gray"></i>
+                            <input type="url" id="taskEvidenceUrl"
+                                placeholder="https://drive.google.com/drive/folders/..."
+                                class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Target Deadline
+                            *</label>
+                        <input type="datetime-local" id="taskDeadline" required
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Catatan Tambahan
+                            (Opsional)</label>
+                        <textarea id="taskNotes" rows="2"
+                            placeholder="Catatan khusus, PIC penanggung jawab, atau instruksi kerja..."
+                            class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none resize-none"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2 pt-3">
+                        <button type="button" onclick="toggleModal('taskModal')"
+                            class="px-5 py-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-700 transition-all">Batal</button>
+                        <button type="submit" id="taskSubmitBtn"
+                            class="px-6 py-2.5 rounded-xl bg-ios-blue text-white text-sm font-semibold hover:bg-blue-600 active:scale-95 transition-all shadow-md">Simpan
+                            Kerjaan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- PRD & Anti-Gravity Info Modal -->
+        <div id="prdModal"
+            class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-md">
+            <div
+                class="w-full max-w-2xl max-h-[85vh] bg-white dark:bg-ios-darkGray5 rounded-3xl p-6 ios-shadow border border-gray-200/60 dark:border-gray-700/60 overflow-y-auto">
+                <div class="flex justify-between items-center pb-3 border-b border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5 text-ios-blue"></i>
+                        <h3 class="text-xl font-bold">PRD & Tips Anti-Gravity Token AI</h3>
+                    </div>
+                    <button onclick="toggleModal('prdModal')"
+                        class="p-1 rounded-full text-ios-gray hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <div class="mt-4 text-sm space-y-4 text-gray-700 dark:text-gray-300">
+                    <div class="p-4 rounded-2xl bg-ios-blue/10 border border-ios-blue/20">
+                        <h4 class="font-bold text-ios-blue mb-1">📋 Ringkasan PRD (Product Requirement Document)</h4>
+                        <ul class="list-disc list-inside text-xs space-y-1 text-gray-600 dark:text-gray-300">
+                            <li><strong>Tujuan:</strong> Portal utama kantor dengan navigasi sidebar dan manajemen tugas
+                                terintegrasi Supabase.</li>
+                        </ul>
+                    </div>
+                    <div class="pt-3 text-right">
+                        <button onclick="toggleModal('prdModal')"
+                            class="px-5 py-2 rounded-xl bg-ios-blue text-white text-xs font-semibold">Tutup
+                            Info</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Tambah / Edit Link Bookmark -->
+        <div id="bookmarkModal"
+            class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+            <div
+                class="w-full max-w-md bg-white dark:bg-ios-darkGray5 rounded-3xl p-6 ios-shadow border border-gray-200/60 dark:border-gray-700/60">
+                <div class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 id="bmModalTitle" class="text-xl font-bold">Tambah Link Tautan</h3>
+                    <button onclick="toggleModal('bookmarkModal')"
+                        class="p-1 rounded-full text-ios-gray hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <form id="bookmarkForm" onsubmit="saveBookmark(event)" class="mt-4 space-y-4">
+                    <input type="hidden" id="bmId">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Judul / Nama Link
+                            *</label>
+                        <input type="text" id="bmTitle" required placeholder="Contoh: Portal e-Kinerja BKN"
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-purple outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">URL Tautan (https://...)
+                            *</label>
+                        <input type="url" id="bmUrl" required placeholder="https://..."
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-purple outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">URL Logo / Ikon
+                            (Opsional)</label>
+                        <input type="url" id="bmLogo" placeholder="https://... (Kosongkan untuk deteksi otomatis)"
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-purple outline-none">
+                        <p class="text-[11px] text-ios-gray mt-1">Sistem otomatis mendeteksi logo situs resmi jika
+                            dikosongkan.</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Catatan
+                            (Opsional)</label>
+                        <textarea id="bmNotes" rows="3" placeholder="Catatan, akun yang dipakai, keterangan penggunaan..."
+                            class="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-purple outline-none resize-none"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-3">
+                        <button type="button" onclick="toggleModal('bookmarkModal')"
+                            class="px-5 py-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 text-sm font-medium">Batal</button>
+                        <button type="submit" id="bmSubmitBtn"
+                            class="px-6 py-2.5 rounded-xl bg-ios-purple text-white text-sm font-semibold shadow-md">Simpan
+                            Link</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <!-- Kelola Akun (hanya admin) -->
+        <div id="userModal"
+            class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
+            <div
+                class="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-ios-darkGray5 rounded-3xl p-6 ios-shadow border border-gray-200/60 dark:border-gray-700/60">
+                <div class="flex justify-between items-center pb-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 class="text-xl font-bold">Kelola Akun</h3>
+                    <button onclick="toggleModal('userModal')" aria-label="Tutup"
+                        class="p-1 rounded-full text-ios-gray hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                <form id="userForm" onsubmit="createUserAccount(event)" novalidate class="mt-4 space-y-4">
+                    <div>
+                        <label for="newUserEmail" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Email akun baru</label>
+                        <input type="email" id="newUserEmail" autocomplete="off" inputmode="email" placeholder="nama@email.com"
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="newUserPassword" class="block text-xs font-semibold text-gray-600 dark:text-gray-300">Kata sandi (minimal 8 karakter)</label>
+                            <button type="button" onclick="generatePassword()" class="text-xs font-semibold text-ios-blue hover:underline">Buat otomatis</button>
+                        </div>
+                        <div class="relative">
+                            <input type="password" id="newUserPassword" autocomplete="new-password"
+                                class="w-full pl-4 pr-28 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                            <button type="button" id="userTogglePw" onclick="toggleUserPw()"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-ios-blue hover:bg-ios-blue/10">Tampilkan</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="newUserPassword2" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Ulangi kata sandi</label>
+                        <input type="password" id="newUserPassword2" autocomplete="new-password"
+                            class="w-full px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-ios-darkGray4 border-none text-sm focus:ring-2 focus:ring-ios-blue outline-none">
+                    </div>
+
+                    <p id="userFormError" role="alert" class="hidden text-xs font-medium text-ios-red bg-ios-red/10 rounded-xl px-3 py-2.5"></p>
+
+                    <button id="userSubmit" type="submit"
+                        class="w-full py-3 rounded-xl bg-ios-blue hover:bg-blue-600 text-white text-sm font-semibold shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed">Tambah Akun</button>
+                </form>
+                <p class="mt-3 text-[11px] leading-relaxed text-ios-gray">Akun baru langsung aktif dan memiliki data sendiri yang terpisah dari akun lain. Berikan kata sandi kepada pemiliknya lewat jalur yang aman.</p>
+
+                <div class="mt-6 pt-5 border-t border-gray-100 dark:border-gray-800">
+                    <h4 class="text-sm font-bold mb-3">Akun terdaftar</h4>
+                    <div id="userList" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast"
+            class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 px-4 py-3 rounded-2xl bg-gray-900/90 dark:bg-white/90 text-white dark:text-gray-900 text-sm shadow-xl backdrop-blur-lg">
+            <i data-lucide="check-circle" class="w-4 h-4 text-ios-green"></i>
+            <span id="toastMessage">Tugas berhasil disimpan</span>
+        </div>
+
+        <!-- External JavaScript File -->
+        <script src="app.js"></script>
+    </div>
+
+</body>
+
+</html>
